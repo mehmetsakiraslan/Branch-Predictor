@@ -2,17 +2,18 @@
 
 
 module Branch_Predictor(
-input i_reset,
-input i_saat,
-input [31:0] i_buyruk_sayaci,
-output o_buyruk_ongoru,
+input i_reset,                  // Tabloları ve tutulan geçmişi sıfırlayan sinyal. 
+input i_saat,                   //  
+input [31:0] i_buyruk_sayaci,   // Program Counter
+input [31:0] i_buyruk,          // Buyruk 
+output o_buyruk_ongoru,         // Şuanda işlenen dallanma buyruğunun öngörüsü.
 
 input i_buyruk_atladi, // 1'b1 -> bir onceki dallanma atladi, 1'b0 -> bir onceki dallanma atlamadi. 
 output o_ongoru_yanlis
     );
     
     /////////////////////////////////////////////////////////////
-    //  32 giri�li �ng�r� tablosu: 2'b00 -> G.T, 2'b11 -> G.A  //
+    //  32 girişli öngörü tablosu: 2'b00 -> G.T, 2'b11 -> G.A  //
     /////////////////////////////////////////////////////////////                                                         
     reg [1:0] gshare_table       [31:0];
     reg [1:0] gshare_table_next  [31:0];
@@ -28,14 +29,14 @@ output o_ongoru_yanlis
     assign o_ongoru_yanlis = r_ongoru_yanlis    ;
     
     // Bir onceki buyruk sayacinin degeri tutulmali, 
-    // Veya onceki dallanma buyrugunun tabloda nereye eri�tigi  ve oncekinin dallanma buyrugu olup olmadigi tutulmali  
+    // Veya onceki dallanma buyrugunun tabloda nereye eriştigi  ve oncekinin dallanma buyrugu olup olmadigi tutulmali  
     // farkli sekillerde yapilabilir. 
     reg [4:0] onceki_buyruk_erisim, onceki_buyruk_erisim_next;
     reg onceki_buyruk_dallanma, onceki_buyruk_dallanma_next;
     
     // Gelen buyrugun dallanma olup olmadigina karar veren wire. 
     wire  yeni_dallanma_buyrugu; 
-    assign yeni_dallanma_buyrugu = i_buyruk_sayaci[1] && i_buyruk_sayaci[2]; // hangi buyruklarin gelebilece�ine gore karar ver. 
+    assign yeni_dallanma_buyrugu = i_buyruk[1] && i_buyruk[2]; // hangi buyruklarin gelebileceğine gore karar ver. 
     
     // Bir onceki buyrugun tabloda eristigi yeri tutan wire. 
     wire yeni_ongoru_adresi; 
@@ -52,7 +53,7 @@ output o_ongoru_yanlis
         branch_history_table_next = branch_history_table;
         
         if(onceki_buyruk_dallanma) begin                                                //
-            branch_history_table_next = {branch_history_table[4:0], i_buyruk_atladi};   // Genel ge�mi� tablosunun g�ncellenmesi 
+            branch_history_table_next = {branch_history_table[4:0], i_buyruk_atladi};   // Genel geçmiş tablosunun güncellenmesi 
                                                                                         //
             gshare_table_next[onceki_buyruk_erisim] = gshare_table_next[onceki_buyruk_erisim]  + 
                                                                 i_buyruk_atladi ? (1'b1) : (-1'b1); //Not: 2 bit counter saturated mi?                                                                           
@@ -69,7 +70,7 @@ output o_ongoru_yanlis
     always@(posedge i_saat) begin
         if(i_reset) begin
             for(loop_counter=0 ; loop_counter < 32 ; loop_counter = loop_counter + 5'b1) begin  //
-                gshare_table[loop_counter] = 2'b00 ;// Sayaclarin ilk tahmini ne?
+                gshare_table[loop_counter] = 2'b00 ;
             end  
             
             r_buyruk_ongoru = 1'b0;
