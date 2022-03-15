@@ -36,7 +36,7 @@ output o_ongoru_yanlis
     
     // Gelen buyrugun dallanma olup olmadigina karar veren wire. 
     wire  yeni_dallanma_buyrugu; 
-    assign yeni_dallanma_buyrugu = i_buyruk[1] && i_buyruk[2]; // hangi buyruklarin gelebileceğine gore karar ver. 
+    assign yeni_dallanma_buyrugu = i_buyruk[6] && (!i_buyruk[2]); // hangi buyruklarin gelebileceğine gore karar ver. 
     
     // Bir onceki buyrugun tabloda eristigi yeri tutan wire. 
     wire [4:0] yeni_ongoru_adresi; 
@@ -57,16 +57,23 @@ output o_ongoru_yanlis
         
         if(onceki_buyruk_dallanma) begin                                                //
             branch_history_table_next = {branch_history_table[4:0], i_buyruk_atladi};   // Genel geçmiş tablosunun güncellenmesi 
-                                                                                        //
+                                                                                        //   
             gshare_table_next[onceki_buyruk_erisim] = gshare_table_next[onceki_buyruk_erisim]  + 
-                                                                i_buyruk_atladi ? (2'b1) : (- 2'b1); //Not: 2 bit counter saturated mi?                                                                           
-        end                                                                             
+                                                                i_buyruk_atladi ? ((2'b11 == gshare_table_next[onceki_buyruk_erisim]) ? 2'b0 : (2'b1)) 
+                                                                : ((2'b00 == gshare_table_next[onceki_buyruk_erisim]) ? 2'b0 : (-2'b1)) ;
+        end
+                                                                             
         
         if(yeni_dallanma_buyrugu) begin
             r_buyruk_ongoru_next = gshare_table[yeni_ongoru_adresi][0];
             
             onceki_buyruk_erisim_next = yeni_ongoru_adresi; 
             onceki_buyruk_dallanma_next = 1'b1; 
+        end
+        else begin
+            r_buyruk_ongoru_next = 1'b0;
+            onceki_buyruk_dallanma_next = 1'b0;
+            onceki_buyruk_erisim_next = 5'd0;
         end
     end
     
