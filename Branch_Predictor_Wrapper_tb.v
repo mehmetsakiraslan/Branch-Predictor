@@ -21,312 +21,112 @@
 //////////////////////////////////////////////////////////////////////////////////
 
 
-module Branch_Predictor_Wrapper_tb(
+module predictor_tb(
 
     );
-    reg i_reset;
-    reg i_saat;
-    reg [31:0] i_buyruk_sayaci;
-    reg [31:0] i_buyruk; 
-    wire o_buyruk_ongoru;
     
-    reg i_buyruk_atladi; // 1'b1 -> bir onceki dallanma atladi, 1'b0 -> bir onceki dallanma atlamadi. 
-    wire o_ongoru_yanlis;
     
-    Branch_Predictor uut(
-    i_reset,
-    i_saat,
-    i_buyruk_sayaci,
-    i_buyruk,
-    o_buyruk_ongoru,
-    i_buyruk_atladi, 
-    o_ongoru_yanlis
+    reg rst_g;                                           
+    reg clk_g;                                            
+    reg [31:0] i_buyruk_adresi;                            
+    reg [31:0] i_buyruk;          //degisicek              
+    wire  [31:0] o_atlanan_adres;                           
+    wire  o_buyruk_ongoru;             
+    
+    reg is_jr;                                                   
+    reg is_branch;                                               
+    reg is_jalr;                                                 
+    reg is_j;                                                    
+    reg is_jal;                                                  
+    reg is_comp; 
+                         
+    reg guncelle_gecerli_g;
+                                                                                                            
+    reg [31:0] i_eski_buyruk;     //degisicek              
+    reg [31:0] i_eski_buyruk_adresi;                       
+    reg i_buyruk_atladi;                                   
+    reg [31:0] i_atlanan_adres;                            
+    reg i_ongoru_yanlis;                                    
+    
+    dallanmaOngorucu uut(
+        .rst_g(rst_g),                                                   
+        .clk_g(clk_g),                                                   
+        .i_buyruk_adresi(i_buyruk_adresi),                       
+        .i_buyruk(i_buyruk),                              
+                                               
+        .is_jr(is_jr),                                                   
+        .is_branch(is_branch),                                               
+        .is_jalr(is_jalr),                                                 
+        .is_j(is_j),                                                    
+        .is_jal(is_jal),                                                  
+        .is_comp(is_comp),                                                 
+                                                                                         
+        .o_atlanan_adres(o_atlanan_adres),                      
+        .o_buyruk_ongoru(o_buyruk_ongoru),                                        
+                                                                                         
+        .guncelle_gecerli_g(guncelle_gecerli_g),                                      
+        .i_eski_buyruk(i_eski_buyruk),                         
+        .i_eski_buyruk_adresi(i_eski_buyruk_adresi),                  
+        .i_buyruk_atladi(i_buyruk_atladi),                                         
+        .i_atlanan_adres(i_atlanan_adres),                       
+        .i_ongoru_yanlis(i_ongoru_yanlis)                                                                      
     );
     
+    
     always begin
-    i_saat = ~i_saat;
     #5;
+    i_saat = ~i_saat;
+    
     end
     
     // Verilen programin döngüleri açılmış hali.
     initial begin
-    i_saat = 0; i_reset = 1'b1;
     
-    #10;
+    i_saat = 1; i_reset = 1'b1;
+    i_buyruk_adresi = 0;
+    i_buyruk = 0;
+    i_buyruk_atladi = 0;
+    
+    i_eski_buyruk_adresi = 32'b000000001010_00000_000_00000_01100_00;                            // tabloda 12. indis
+    i_eski_buyruk = 32'b0000000_00110_00101_000_01100_1100000; 
+     
+    i_atlanan_adres = 32'b000000001010_00000_000_00000_01100_00;
+    i_ongoru_yanlis = 1'b0;
+    
+    is_jr = 0;                                                   
+    is_branch = 0;                                               
+    is_jalr = 0;                                                 
+    is_j = 0;                                                    
+    is_jal = 0;                                                  
+    is_comp = 0;   
+    
+    guncelle_gecerli_g = 0;
+    
+    #18;
     
     i_reset = 1'b0;
-    i_buyruk_sayaci = 32'd0;
-    i_buyruk = 32'b000000001010_00000_000_00101_0010011; // addi x5,x0,#10
+    i_buyruk_adresi = 32'b0;                            
+    i_buyruk = 32'b0000000_00110_00101_000_01100_1100011;   // branch 
     i_buyruk_atladi = 1'b0;
-    
-    #10; 
-    
-    i_buyruk_sayaci = 32'd4;
-    i_buyruk = 32'b000000000101_00000_000_00110_0010011; // addi x6,x0,#5
-    i_buyruk_atladi = 1'b0;
-    
-    #10; 
-    
-    i_buyruk_sayaci = 32'd8;                                                       //         
-    i_buyruk = 32'b0000000_00110_00101_000_01100_1100011; // beq x5, x6, #12       //
-    i_buyruk_atladi = 1'b0;                                                        //
-                                                                                   //
-    #10;                                                                           //
-                                                                                   //
-    i_buyruk_sayaci = 32'd12;                                                       //  Loop 1.1
-    i_buyruk = 32'b000000000001_00110_000_00110_0010011; // addi x6,x6,#1          //
-    i_buyruk_atladi = 1'b0;                                                        //
-                                                                                   //
-    #10;                                                                           //
-                                                                                   //
-    i_buyruk_sayaci = 32'd16;                                                       //
-    i_buyruk = 32'b10000000100000000000_00000_1101111; // jal x0,#(-8)             //
-    i_buyruk_atladi = 1'b0;                                                        //
      
-    #10;
+    i_eski_buyruk_adresi = 32'b0;                           
+    i_eski_buyruk = 32'b0000000_00110_00101_000_01100_1100000; 
      
-    i_buyruk_sayaci = 32'd8;                                                       //         
-    i_buyruk = 32'b0000000_00110_00101_000_01100_1100011; // beq x5, x6, #12       //
-    i_buyruk_atladi = 1'b0;                                                        //
-                                                                                   //
-    #10;                                                                           //
-                                                                                   //
-    i_buyruk_sayaci = 32'd12;                                                       //  Loop 1.2
-    i_buyruk = 32'b000000000001_00110_000_00110_0010011; // addi x6,x6,#1          //
-    i_buyruk_atladi = 1'b0;                                                        //
-                                                                                   //
-    #10;                                                                           //
-                                                                                   //
-    i_buyruk_sayaci = 32'd16;                                                       //
-    i_buyruk = 32'b10000000100000000000_00000_1101111; // jal x0,#(-8)             //
-    i_buyruk_atladi = 1'b0;                                                        //
+    i_atlanan_adres = 32'b0;
+    i_ongoru_yanlis = 1'b0;
     
-    #10;
-     
-    i_buyruk_sayaci = 32'd8;                                                       //         
-    i_buyruk = 32'b0000000_00110_00101_000_01100_1100011; // beq x5, x6, #12       //
-    i_buyruk_atladi = 1'b0;                                                        //
-                                                                                   //
-    #10;                                                                           //
-                                                                                   //
-    i_buyruk_sayaci = 32'd12;                                                       //  Loop 1.3
-    i_buyruk = 32'b000000000001_00110_000_00110_0010011; // addi x6,x6,#1          //
-    i_buyruk_atladi = 1'b0;                                                        //
-                                                                                   //
-    #10;                                                                           //
-                                                                                   //
-    i_buyruk_sayaci = 32'd16;                                                       //
-    i_buyruk = 32'b10000000100000000000_00000_1101111; // jal x0,#(-8)             //
-    i_buyruk_atladi = 1'b0;                                                        //
+    is_jr = 0;                                                   
+    is_branch = 0;                                               
+    is_jalr = 0;                                                 
+    is_j = 0;                                                    
+    is_jal = 0;                                                  
+    is_comp = 0;   
     
-    #10;
-     
-    i_buyruk_sayaci = 32'd8;                                                       //         
-    i_buyruk = 32'b0000000_00110_00101_000_01100_1100011; // beq x5, x6, #12       //
-    i_buyruk_atladi = 1'b0;                                                        //
-                                                                                   //
-    #10;                                                                           //
-                                                                                   //
-    i_buyruk_sayaci = 32'd12;                                                       //  Loop 1.4
-    i_buyruk = 32'b000000000001_00110_000_00110_0010011; // addi x6,x6,#1          //
-    i_buyruk_atladi = 1'b0;                                                        //
-                                                                                   //
-    #10;                                                                           //
-                                                                                   //
-    i_buyruk_sayaci = 32'd16;                                                       //
-    i_buyruk = 32'b10000000100000000000_00000_1101111; // jal x0,#(-8)             //
-    i_buyruk_atladi = 1'b0;                                                        //
-   
-    #10;
-     
-    i_buyruk_sayaci = 32'd8;                                                       //         
-    i_buyruk = 32'b0000000_00110_00101_000_01100_1100011; // beq x5, x6, #12       //
-    i_buyruk_atladi = 1'b0;                                                        //
+    guncelle_gecerli_g = 0;
     
-    #10; 
+    #18;
     
-    i_buyruk_sayaci = 32'd20;                                                      //
-    i_buyruk = 32'b000000000001_00000_000_00111_0010011; // addi x7,x0,#1          //
-    i_buyruk_atladi = 1'b1;                                                        //
-                                                                                   //
-    #10;                                                                           //
-                                                                                   //
-    i_buyruk_sayaci = 32'd24;                                                       //        
-    i_buyruk = 32'b0000000_00110_00111_000_01000_1100011; // beq x7, x6, #8        //  Loop 2.1
-    i_buyruk_atladi = 1'b0;                                                        //
-                                                                                   //
-    #10;                                                                           //
-                                                                                   //
-    i_buyruk_sayaci = 32'd28;                                                       //        
-    i_buyruk = 32'b0000000_00110_00111_000_01000_1100011; // bne x7, x5, #(-8)     //  
-    i_buyruk_atladi = 1'b0;                                                        //
-    
-    #10; 
-    
-    i_buyruk_sayaci = 32'd20;                                                      //
-    i_buyruk = 32'b000000000001_00000_000_00111_0010011; // addi x7,x0,#1          //
-    i_buyruk_atladi = 1'b1;                                                        //
-                                                                                   //
-    #10;                                                                           //
-                                                                                   //
-    i_buyruk_sayaci = 32'd24;                                                       //        
-    i_buyruk = 32'b0000000_00110_00111_000_01000_1100011; // beq x7, x6, #8        //  Loop 2.2
-    i_buyruk_atladi = 1'b0;                                                        //
-                                                                                   //
-    #10;                                                                           //
-                                                                                   //
-    i_buyruk_sayaci = 32'd28;                                                       //        
-    i_buyruk = 32'b0000000_00110_00111_000_01000_1100011; // bne x7, x5, #(-8)     //  
-    i_buyruk_atladi = 1'b0;                                                        //
-    
-    #10; 
-    
-    i_buyruk_sayaci = 32'd20;                                                      //
-    i_buyruk = 32'b000000000001_00000_000_00111_0010011; // addi x7,x0,#1          //
-    i_buyruk_atladi = 1'b1;                                                        //
-                                                                                   //
-    #10;                                                                           //
-                                                                                   //
-    i_buyruk_sayaci = 32'd24;                                                       //        
-    i_buyruk = 32'b0000000_00110_00111_000_01000_1100011; // beq x7, x6, #8        //  Loop 2.3
-    i_buyruk_atladi = 1'b0;                                                        //
-                                                                                   //
-    #10;                                                                           //
-                                                                                   //
-    i_buyruk_sayaci = 32'd28;                                                       //        
-    i_buyruk = 32'b0000000_00110_00111_000_01000_1100011; // bne x7, x5, #(-8)     //  
-    i_buyruk_atladi = 1'b0;                                                        //
-    
-    #10; 
-    
-    i_buyruk_sayaci = 32'd20;                                                      //
-    i_buyruk = 32'b000000000001_00000_000_00111_0010011; // addi x7,x0,#1          //
-    i_buyruk_atladi = 1'b1;                                                        //
-                                                                                   //
-    #10;                                                                           //
-                                                                                   //
-    i_buyruk_sayaci = 32'd24;                                                       //        
-    i_buyruk = 32'b0000000_00110_00111_000_01000_1100011; // beq x7, x6, #8        //  Loop 2.4
-    i_buyruk_atladi = 1'b0;                                                        //
-                                                                                   //
-    #10;                                                                           //
-                                                                                   //
-    i_buyruk_sayaci = 32'd28;                                                       //        
-    i_buyruk = 32'b0000000_00110_00111_000_01000_1100011; // bne x7, x5, #(-8)     //  
-    i_buyruk_atladi = 1'b0;                                                        //
-    
-    #10; 
-    
-    i_buyruk_sayaci = 32'd20;                                                      //
-    i_buyruk = 32'b000000000001_00000_000_00111_0010011; // addi x7,x0,#1          //
-    i_buyruk_atladi = 1'b1;                                                        //
-                                                                                   //
-    #10;                                                                           //
-                                                                                   //
-    i_buyruk_sayaci = 32'd24;                                                       //        
-    i_buyruk = 32'b0000000_00110_00111_000_01000_1100011; // beq x7, x6, #8        //  Loop 2.5
-    i_buyruk_atladi = 1'b0;                                                        //
-                                                                                   //
-    #10;                                                                           //
-                                                                                   //
-    i_buyruk_sayaci = 32'd28;                                                       //        
-    i_buyruk = 32'b0000000_00110_00111_000_01000_1100011; // bne x7, x5, #(-8)     //  
-    i_buyruk_atladi = 1'b0;                                                        //
-    
-    #10; 
-    
-    i_buyruk_sayaci = 32'd20;                                                      //
-    i_buyruk = 32'b000000000001_00000_000_00111_0010011; // addi x7,x0,#1          //
-    i_buyruk_atladi = 1'b1;                                                        //
-                                                                                   //
-    #10;                                                                           //
-                                                                                   //
-    i_buyruk_sayaci = 32'd24;                                                       //        
-    i_buyruk = 32'b0000000_00110_00111_000_01000_1100011; // beq x7, x6, #8        //  Loop 2.6
-    i_buyruk_atladi = 1'b0;                                                        //
-                                                                                   //
-    #10;                                                                           //
-                                                                                   //
-    i_buyruk_sayaci = 32'd28;                                                       //        
-    i_buyruk = 32'b0000000_00110_00111_000_01000_1100011; // bne x7, x5, #(-8)     //  
-    i_buyruk_atladi = 1'b0;                                                        //
-    
-    #10; 
-    
-    i_buyruk_sayaci = 32'd20;                                                      //
-    i_buyruk = 32'b000000000001_00000_000_00111_0010011; // addi x7,x0,#1          //
-    i_buyruk_atladi = 1'b1;                                                        //
-                                                                                   //
-    #10;                                                                           //
-                                                                                   //
-    i_buyruk_sayaci = 32'd24;                                                       //        
-    i_buyruk = 32'b0000000_00110_00111_000_01000_1100011; // beq x7, x6, #8        //  Loop 2.7
-    i_buyruk_atladi = 1'b0;                                                        //
-                                                                                   //
-    #10;                                                                           //
-                                                                                   //
-    i_buyruk_sayaci = 32'd28;                                                       //        
-    i_buyruk = 32'b0000000_00110_00111_000_01000_1100011; // bne x7, x5, #(-8)     //  
-    i_buyruk_atladi = 1'b0;                                                        //
-    
-    #10; 
-    
-    i_buyruk_sayaci = 32'd20;                                                      //
-    i_buyruk = 32'b000000000001_00000_000_00111_0010011; // addi x7,x0,#1          //
-    i_buyruk_atladi = 1'b1;                                                        //
-                                                                                   //
-    #10;                                                                           //
-                                                                                   //
-    i_buyruk_sayaci = 32'd24;                                                       //        
-    i_buyruk = 32'b0000000_00110_00111_000_01000_1100011; // beq x7, x6, #8        //  Loop 2.8
-    i_buyruk_atladi = 1'b0;                                                        //
-                                                                                   //
-    #10;                                                                           //
-                                                                                   //
-    i_buyruk_sayaci = 32'd28;                                                       //        
-    i_buyruk = 32'b0000000_00110_00111_000_01000_1100011; // bne x7, x5, #(-8)     //  
-    i_buyruk_atladi = 1'b0;                                                        //
-    
-    #10; 
-    
-    i_buyruk_sayaci = 32'd20;                                                      //
-    i_buyruk = 32'b000000000001_00000_000_00111_0010011; // addi x7,x0,#1          //
-    i_buyruk_atladi = 1'b1;                                                        //
-                                                                                   //
-    #10;                                                                           //
-                                                                                   //
-    i_buyruk_sayaci = 32'd24;                                                       //        
-    i_buyruk = 32'b0000000_00110_00111_000_01000_1100011; // beq x7, x6, #8        //  Loop 2.9
-    i_buyruk_atladi = 1'b0;                                                        //
-                                                                                   //
-    #10;                                                                           //
-                                                                                   //
-    i_buyruk_sayaci = 32'd28;                                                       //        
-    i_buyruk = 32'b0000000_00110_00111_000_01000_1100011; // bne x7, x5, #(-8)     //  
-    i_buyruk_atladi = 1'b0;                                                        //
-    
-    #10; 
-    
-    i_buyruk_sayaci = 32'd20;                                                      
-    i_buyruk = 32'b000000000001_00000_000_00111_0010011; // addi x7,x0,#1          
-    i_buyruk_atladi = 1'b1;                                                        
-                                                                                   
-    #10;                                                                           
-                                                                                   
-    i_buyruk_sayaci = 32'd24;                                                              
-    i_buyruk = 32'b0000000_00110_00111_000_01000_1100011; // beq x7, x6, #8          
-    i_buyruk_atladi = 1'b0;                                                        
-    
-    #10; 
-    
-    i_buyruk_sayaci = 32'd20;                                                      
-    i_buyruk = 32'b000000000001_00000_000_00111_0010011; // addi x7,x0,#1          
-    i_buyruk_atladi = 1'b1; 
-                                                                                   
-  
-                                                                                   
- 
-                                                           
+                                                 
     
    
     
