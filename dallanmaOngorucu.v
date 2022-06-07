@@ -115,13 +115,13 @@ input i_ongoru_yanlis
         if(is_branch) begin
             r_buyruk_ongoru_next = btb[yeni_ongoru_adresi][33];
             bht_next = {bht[6:0], btb[yeni_ongoru_adresi][33]}; // spekulatif guncelleme
-            bht_pointer_next = bht_pointer + 2'd1; 
+            bht_pointer_next = bht_pointer + 3'd1; 
             
             r_atlanan_adres_next = btb[yeni_ongoru_adresi][31:0];
         end
         
         if(eski_dallanma_buyrugu && guncelle_gecerli_g) begin
-            bht_pointer_next = (bht_pointer != 3'd0) ?  (bht_pointer - 3'd1) : (3'd0);
+            bht_pointer_next = (bht_pointer != 3'd0) ?  ((is_branch) ? (bht_pointer) : (bht_pointer - 3'd1)) : (3'd0);
             
             btb_next[eski_ongoru_adresi][31:0] = i_eski_buyruk_adresi;
             if(i_ongoru_yanlis) begin
@@ -144,7 +144,8 @@ input i_ongoru_yanlis
                 3'b000:  btb_next[eski_ongoru_adresi][33:32] = 2'b00;
                 endcase
                 
-                btb_next[eski_ongoru_adresi][31:0] = i_eski_buyruk_adresi;    
+                btb_next[eski_ongoru_adresi][31:0] = i_atlanan_adres;    
+                
                 for(loop_counter=1 ;loop_counter<5; loop_counter=loop_counter+1) begin
                     bht_next[loop_counter] = bht[loop_counter+bht_pointer]; // iki yonlu shift register, araya yanlis branchler aldiysak geri sarilmali
                 end
@@ -170,7 +171,7 @@ input i_ongoru_yanlis
         end
         
         if(eski_uncond_buyruk && i_ongoru_yanlis) begin
-            
+            btb_next[eski_ongoru_adresi][31:0] = i_atlanan_adres;  
         end
         
         if(ras_push) begin
