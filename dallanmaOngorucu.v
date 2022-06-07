@@ -6,7 +6,7 @@
 `define C_JALR  4'b1001
 `define BUYRUK_BIT 32'd32
 
-`include "sabitler.vh"
+//`include "sabitler.vh"
 
 module dallanmaOngorucu(
 input rst_g,                   
@@ -40,7 +40,7 @@ input i_ongoru_yanlis
     assign o_buyruk_ongoru = r_buyruk_ongoru;
     
     // /////////////////////////////////////////////////////////////
-    // //  32 giri?li öngörü tablosu: 2'b00 -> G.T, 2'b11 -> G.A  //
+    // //  32 giri?li Ã¶ngÃ¶rÃ¼ tablosu: 2'b00 -> G.T, 2'b11 -> G.A  //
     // /////////////////////////////////////////////////////////////                                                         
     // reg [1:0] cift_kutuplu_sayac_tablosu       [31:0];
     // reg [1:0] cift_kutuplu_sayac_tablosu_next  [31:0];
@@ -64,7 +64,7 @@ input i_ongoru_yanlis
     ////////////////////////////////////////////////////////////////// 
     reg [7:0] bht, bht_next; 
     
-    reg [1:0] bht_pointer, bht_pointer_next;
+    reg [2:0] bht_pointer, bht_pointer_next;
     
     // BTB kontrol sinyalleri
     wire yeni_dallanma_buyrugu;
@@ -74,10 +74,10 @@ input i_ongoru_yanlis
     assign eski_dallanma_buyrugu = i_eski_buyruk[6:0] == `BRANCH;
     
     wire [4:0] yeni_ongoru_adresi;
-    assign yeni_ongoru_adresi = ((eski_dallanma_buyrugu && guncelle_gecerli_g) ? ({bht[4:1], i_buyruk_atladi}) : (bht[4:0])) ^ i_buyruk_adresi[6:2]; // once tahmin iceren bht elemanini guncelle 
+    assign yeni_ongoru_adresi = ((yeni_dallanma_buyrugu && guncelle_gecerli_g) ? ({bht[4:1], i_buyruk_atladi}) : (bht[4:0])) ^ i_buyruk_adresi[6:2]; // once tahmin iceren bht elemanini guncelle 
     
     wire [4:0] eski_ongoru_adresi;
-    assign eski_ongoru_adresi = bht_next[(bht_pointer-1)+:4] ^ i_eski_buyruk_adresi; // kontrol et 
+    assign eski_ongoru_adresi = bht_next[(bht_pointer)+:4] ^ i_eski_buyruk_adresi; // kontrol et************* 
     
     wire eski_uncond_buyruk;
     assign eski_uncond_buyruk = (i_eski_buyruk[6:0] == `JALR) || (is_comp &&  (i_eski_buyruk[15:12] == `C_JALR ));  // BTB'ye erisecek jump buyruklari
@@ -112,26 +112,44 @@ input i_ongoru_yanlis
         r_atlanan_adres_next = r_atlanan_adres;
         r_buyruk_ongoru_next = r_buyruk_ongoru; 
         
-        if(yeni_dallanma_buyrugu) begin
+        if(is_branch) begin
             r_buyruk_ongoru_next = btb[yeni_ongoru_adresi][33];
             bht_next = {bht[6:0], btb[yeni_ongoru_adresi][33]}; // spekulatif guncelleme
-            bht_pointer_next = bht_pointer + 3'd1; 
+            bht_pointer_next = bht_pointer + 2'd1; 
             
             r_atlanan_adres_next = btb[yeni_ongoru_adresi][31:0];
         end
         
         if(eski_dallanma_buyrugu && guncelle_gecerli_g) begin
-            bht_pointer_next = (bht_pointer != 3'd0) ?  bht_pointer - 3'd1 : 3'd0;
+            bht_pointer_next = (bht_pointer != 3'd0) ?  (bht_pointer - 3'd1) : (3'd0);
             
             btb_next[eski_ongoru_adresi][31:0] = i_eski_buyruk_adresi;
             if(i_ongoru_yanlis) begin
-                btb_next[eski_ongoru_adresi][32:31] = btb[eski_ongoru_adresi][32:31] + 
-                                                        i_buyruk_atladi ? ((2'b11 == btb[eski_ongoru_adresi][32:31]) ? 2'b0 : (2'b1)) // lookup table kullanmak daha mantikli olabilir
-                                                                : ((2'b00 == btb[eski_ongoru_adresi][32:31]) ? 2'b0 : (-2'b1)) ;  
-                    
-                for(loop_counter=0 ;loop_counter<5; loop_counter=loop_counter+1) begin
+               
+                case({i_buyruk_atladi, btb[eski_ongoru_adresi][33:32]})
+                3'b111:  btb_next[eski_ongoru_adresi][33:32] = 2'b11;
+                
+                3'b110:  btb_next[eski_ongoru_adresi][33:32] = 2'b11;
+                
+                3'b101:  btb_next[eski_ongoru_adresi][33:32] = 2'b10;
+                
+                3'b100:  btb_next[eski_ongoru_adresi][33:32] = 2'b01;
+                
+                3'b011:  btb_next[eski_ongoru_adresi][33:32] = 2'b10;
+                
+                3'b010:  btb_next[eski_ongoru_adresi][33:32] = 2'b01;
+                
+                3'b001:  btb_next[eski_ongoru_adresi][33:32] = 2'b00;
+                
+                3'b000:  btb_next[eski_ongoru_adresi][33:32] = 2'b00;
+                endcase
+                
+                btb_next[eski_ongoru_adresi][31:0] = i_eski_buyruk_adresi;    
+                for(loop_counter=1 ;loop_counter<5; loop_counter=loop_counter+1) begin
                     bht_next[loop_counter] = bht[loop_counter+bht_pointer]; // iki yonlu shift register, araya yanlis branchler aldiysak geri sarilmali
                 end
+                
+                bht_next[0] = i_buyruk_atladi;
                 
                 for(loop_counter=0 ;loop_counter<3; loop_counter=loop_counter+1) begin 
                     ras_next[loop_counter] = 32'd0; 
@@ -151,12 +169,8 @@ input i_ongoru_yanlis
             r_atlanan_adres_next = i_buyruk_adresi + {{21{i_buyruk[11]}}, i_buyruk[4], i_buyruk[9:8], i_buyruk[10],i_buyruk[6], i_buyruk[7], i_buyruk[3:1], i_buyruk[5]};
         end
         
-        if(eski_uncond_buyruk) begin
-            if(i_ongoru_yanlis) begin
-                btb_next[eski_ongoru_adresi][32:31] = btb[eski_ongoru_adresi][32:31] + 
-                                                        i_buyruk_atladi ? ((2'b11 == btb[eski_ongoru_adresi][32:31]) ? 2'b0 : (2'b1)) // lookup table kullanmak daha mantikli olabilir
-                                                                : ((2'b00 == btb[eski_ongoru_adresi][32:31]) ? 2'b0 : (-2'b1)) ;  
-            end
+        if(eski_uncond_buyruk && i_ongoru_yanlis) begin
+            
         end
         
         if(ras_push) begin
@@ -167,25 +181,42 @@ input i_ongoru_yanlis
         end
         
         if(ras_pop) begin
+            ras_next[3] = 32'd0;
             ras_next[2] = ras[3];
             ras_next[1] = ras[2];
-            ras_next[0] = ras[1]; 
+            ras_next[0] = ras[1];
+            r_atlanan_adres_next = ras[0]; 
         end
     end 
     
     always@(posedge clk_g) begin
         if(rst_g) begin
             for(loop_counter=0; loop_counter<32; loop_counter=loop_counter+1) begin  
-                btb[loop_counter] = 34'd0;                  
+                btb[loop_counter] <= 34'b11_00000000000000000000000000000000;                  
             end
             for(loop_counter=0; loop_counter<4; loop_counter=loop_counter+1) begin  //
-                ras[loop_counter] = 32'd0;                  
+                ras[loop_counter] <= 32'd0;                  
             end
-            bht = 9'd0;
-            bht_pointer = 3'd0;
-            r_atlanan_adres = 32'd0 ;
-            r_buyruk_ongoru = 1'd0;
+            bht <= 8'd0;
+            bht_pointer <= 3'd0;
+            r_atlanan_adres <= 32'd0 ;
+            r_buyruk_ongoru <= 1'd0;
         end
+        else begin
+            for(loop_counter=0; loop_counter<32; loop_counter=loop_counter+1) begin  
+                btb[loop_counter] <= btb_next[loop_counter] ;                  
+            end
+            for(loop_counter=0; loop_counter<4; loop_counter=loop_counter+1) begin  //
+                ras[loop_counter] <= ras_next[loop_counter] ;                  
+            end
+            bht <= bht_next;
+            bht_pointer <= bht_pointer_next;
+            r_atlanan_adres <= r_atlanan_adres_next;
+            r_buyruk_ongoru <= r_buyruk_ongoru_next;
+        end
+    end
+    
+endmodule
         else begin
             for(loop_counter=0; loop_counter<32; loop_counter=loop_counter+1) begin  
                 btb[loop_counter] = btb_next[loop_counter] ;                  
