@@ -217,18 +217,3 @@ input i_ongoru_yanlis
     end
     
 endmodule
-        else begin
-            for(loop_counter=0; loop_counter<32; loop_counter=loop_counter+1) begin  
-                btb[loop_counter] = btb_next[loop_counter] ;                  
-            end
-            for(loop_counter=0; loop_counter<4; loop_counter=loop_counter+1) begin  //
-                ras[loop_counter] = ras_next[loop_counter] ;                  
-            end
-            bht = bht_next;
-            bht_pointer = bht_pointer_next;
-            r_atlanan_adres = r_atlanan_adres_next;
-            r_buyruk_ongoru = r_buyruk_ongoru_next;
-        end
-    end
-    
-endmodule
